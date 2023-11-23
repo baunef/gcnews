@@ -179,5 +179,5 @@ all_results <- cbind(
   Dict_Thiele_Economy = econ_titles$thiele_econ_terms_title + econ_results$thiele_econ_terms_par
 ) %>% rename(Dict_Gruendl = dict_gruendl_2020)
 
-# write.csv(all_results, "./text_classification/dictionaries/gc_news_dictionary_labels", row.names = FALSE)
+# write.csv(all_results, "./text_classification/dictionaries/gc_news_dictionary_labels.csv", row.names = FALSE)
 
