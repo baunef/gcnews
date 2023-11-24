@@ -23,11 +23,6 @@ build_formula <- function(dv, iv) {
   as.formula(specification)
 }
 
-# Sigmoid
-sigmoid <- function(x) {
-  exp(x)/(1+exp(x))
-}
-
 floor_dec <- function(x, level=1) round(x - 5*10^(-level-1), level)
 ceiling_dec <- function(x, level=1) round(x + 5*10^(-level-1), level)
 
@@ -45,7 +40,7 @@ print_media  <- c("Süddeutsche Zeitung",
 
 # Load Data ---------------------------------------------------------------
 
-gc_news <- read.csv("./data/gcnews/gc_news_labeled.csv", row.names=1) %>%
+gcnews <- read.csv("./data/gcnews/gc_news_labeled.csv", row.names=1) %>%
   mutate(
     Date = as.Date(Date)
   )
@@ -65,45 +60,45 @@ death_data <- read.csv("./data/external/COVID-19-Todesfaelle_Deutschland.csv") %
 print("========== Data read ==========")
 # Explanatory Variables ---------------------------------------------------
 
-gc_news$covid <- ifelse(gc_news$Dict_Thiele_Covid > 0, "COVID-19", "Non-COVID-19")
-gc_news$econ <- ifelse(gc_news$Dict_Thiele_Economy > 0, "Economy", "Non-Economy")
-gc_news$source_group <- ifelse(gc_news$Source %in% online_media, "online", "print")
+gcnews$covid <- ifelse(gcnews$Dict_Thiele_Covid > 0, "COVID-19", "Non-COVID-19")
+gcnews$econ <- ifelse(gcnews$Dict_Thiele_Economy > 0, "Economy", "Non-Economy")
+gcnews$source_group <- ifelse(gcnews$Source %in% online_media, "online", "print")
 
 lockdown <- c(
   seq(as.Date("2020-03-16"), as.Date("2020-05-06"), by="days"),
   seq(as.Date("2020-12-16"), as.Date("2021-03-03"), by="days")
 )
-gc_news$lockdown <- ifelse(gc_news$Date %in% lockdown, "Lockdown", "No Lockdown")
-gc_news$pandemic <- ifelse(gc_news$Date < "2022-02-24" & gc_news$Date > "2020-03-11", "Pandemic", "No Pandemic")
+gcnews$lockdown <- ifelse(gcnews$Date %in% lockdown, "Lockdown", "No Lockdown")
+gcnews$pandemic <- ifelse(gcnews$Date < "2022-02-24" & gcnews$Date > "2020-03-11", "Pandemic", "No Pandemic")
 
-gc_news$inc <- -1
-for (i in 1:nrow(gc_news)) {
-  if (gc_news$Date[i] %in% inc_data$Meldedatum) {
-    gc_news$inc[i] <- inc_data$Inzidenz_7.Tage[which(inc_data$Meldedatum == gc_news$Date[i])]
+gcnews$inc <- -1
+for (i in 1:nrow(gcnews)) {
+  if (gcnews$Date[i] %in% inc_data$Meldedatum) {
+    gcnews$inc[i] <- inc_data$Inzidenz_7.Tage[which(inc_data$Meldedatum == gcnews$Date[i])]
   } else {
-    gc_news$inc[i] <- 0
+    gcnews$inc[i] <- 0
   }
 }
 
-gc_news$covid_deaths <- -1
-for (i in 1:nrow(gc_news)) {
-  if (gc_news$Date[i] %in% death_data$Berichtsdatum) {
-    gc_news$covid_deaths[i] <- death_data$Todesfaelle_neu[which(death_data$Berichtsdatum == gc_news$Date[i])]
+gcnews$covid_deaths <- -1
+for (i in 1:nrow(gcnews)) {
+  if (gcnews$Date[i] %in% death_data$Berichtsdatum) {
+    gcnews$covid_deaths[i] <- death_data$Todesfaelle_neu[which(death_data$Berichtsdatum == gcnews$Date[i])]
   } else {
-    gc_news$covid_deaths[i] <- 0
+    gcnews$covid_deaths[i] <- 0
   }
 }
 
 
 # Summary Stats -----------------------------------------------------------
 
-par_df <- gc_news %>%
+par_df <- gcnews %>%
   group_by(Source) %>%
   summarise(
     n_paragraphs = n()
   )
 
-art_df <- gc_news %>% 
+art_df <- gcnews %>% 
   group_by(Title, Date, Source, Author, source_group, inc, covid_deaths, lockdown) %>%
   mutate(
     add_pop = (PopBERT_AE + PopBERT_PC) > 1,
@@ -138,7 +133,7 @@ stats_complete <- rbind(stats_online, stats_print) %>%
 # Regression Data ---------------------------------------------------------
 
 # paragraph-level
-reg_df <- gc_news %>%
+reg_df <- gcnews %>%
   reframe(
     pop_score = (PopBERT_AE + PopBERT_PC > 1) * 1,
     var_covid = (covid == "COVID-19") * 1,
@@ -156,7 +151,7 @@ reg_df <- gc_news %>%
   )
 
 # article-level
-reg_art_df <- gc_news %>% 
+reg_art_df <- gcnews %>% 
   group_by(Title, Date, Source, Author, source_group, inc, covid_deaths, lockdown) %>%
   mutate(
     add_pop = (PopBERT_AE + PopBERT_PC) > 1,
@@ -385,10 +380,6 @@ tab_paragraph <- model_sum %>%
     c(Variable, Estimate, Std..Error, Pr...z..)
   )
 
-cat("Paragraph-level Regression: \n\n")
-tab_paragraph
-
-
 # Single Models (Article) -------------------------------------------------
 
 controls <- c("var_covid", "var_econ", "var_lockdown", 
@@ -457,40 +448,26 @@ tab_article <- art_model_sum %>%
     c(Variable, Estimate, Std..Error, Pr...t..)
   )
 
-cat("Article-level Regression: \n\n")
-tab_article
-
-
 # Combined Plot -----------------------------------------------------------
 
-library(gridExtra)
 grid.arrange(par_model, art_model, ncol=2,
              top = "Individual Models"
              )
 grid.arrange(mv_par_model, mv_art_model, ncol=2, 
-             top = "Combined Model"
+             top = "Fully Specified Model"
              )
 
-tab_complete <- left_join(tab_paragraph, tab_article, by="Variable", suffix=c("_par", "_art"))
+pdf(file = "./figures/multi_models_ame_variable.pdf",   
+    width = 9, 
+    height = 3)
+grid.arrange(mv_par_model, mv_art_model, ncol=2
+)
+dev.off()
 
-rbind(stats_online, stats_print) %>% mutate(pct_paragraphs = n_paragraphs / sum(rbind(stats_online, stats_print)$n_paragraphs)*100, pct_articles = n_articles / sum(rbind(stats_online, stats_print)$n_articles)*100, diff = -pct_paragraphs + pct_articles)
+tab_stats <- rbind(stats_online, stats_print) %>% 
+  mutate(
+    pct_paragraphs = n_paragraphs / sum(rbind(stats_online, stats_print)$n_paragraphs)*100, 
+    pct_articles = n_articles / sum(rbind(stats_online, stats_print)$n_articles)*100, 
+    diff = -pct_paragraphs + pct_articles)
 
-
-
-# LaTeX Output ------------------------------------------------------------
-
-library(texreg)
-
-mytable <- texreg(list(multivar_par_model, multivar_art_model, model_sum, art_model_sum), label = "tab:regression_results",
-                  caption = "Bolded coefficients, custom notes, three digits.",
-                  float.pos = "!h", return.string = TRUE, bold = 0.05, stars = 0,
-                  custom.note = "Coefficients with $p < 0.05$ in \\textbf{bold}.",
-                  digits = 3, leading.zero = FALSE, omit.coef = "Inter")
-
-
-
-
-
-
-
-
+print(tab_stats) # GC News Statistics

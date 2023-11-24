@@ -16,7 +16,9 @@ print("========== Packages loaded ==========")
 
 # Load CSV ----------------------------------------------------------------
 
-gcnews <- read.csv("./data/gcnews/gc_news_labeled.csv")
+# gcnews <- read.csv("./data/gcnews/gc_news_unlabeled.csv") # Uncomment, if full unlabeled file is available. 
+gcnews <- read.csv("./data/gcnews/gc_news_unlabeled_sample1000.csv")
+
 
 covid_terms <- read.csv("./text_classification/dictionaries/thiele_covid_terms.csv")$terms %>% 
   as.vector() %>% 
