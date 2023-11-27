@@ -311,157 +311,14 @@ mv_art_model <- multivar_art_summary %>%
   theme(legend.position = "none", axis.title.x=element_text(size=9),
         plot.title = element_text(hjust = .5))
 
-
-# Single Models (Paragraph) -----------------------------------------------
-
-controls <- c("var_covid", "var_econ", "var_lockdown", 
-              "var_war", "var_date", "var_source", "var_inc", 
-              "var_death",
-              "var_springer", "var_cons", "var_left", "var_tabloid"
-)
-new_names <- c("COVID-19", "Economy", "Lockdown", 
-               "War", "Date", "Print/Online", "7-day Incidence",
-               "Fatalities",
-               "Axel Springer SE", "Conservative", "Left", "Tabloid"
-)
-model_sum <- data.frame(
-  Estimate=double(),
-  Std..Error=double(),
-  t.value=double(),
-  Pr...t..=double(),
-  stringsAsFactors=FALSE
-) 
-for (c in controls) {
-  temp_model <- glm(
-    build_formula(dv = "pop_score", iv = c),
-    family = binomial(),
-    data = reg_df
-  )
-  temp_df <-  data.frame(summary(temp_model)$coefficients)[2,]
-  model_sum <- rbind(model_sum, temp_df)
-}
-model_sum <- cbind(Name = rownames(model_sum), model_sum)
-rownames(model_sum) <- 1:nrow(model_sum)
-model_sum$Significance <- ifelse(model_sum$Pr...z.. < 0.05, "p < 0.05", "p > 0.05")
-
-par_model <- model_sum %>% 
-  mutate(
-    Variable = new_names[which(controls == Name)]
-  ) %>%
-  ggplot(aes(x=Estimate, y=Variable)) + 
-  geom_vline(xintercept=0) +
-  geom_linerange(aes(x=Estimate, y=factor(Variable, 
-                                          rev(c("Date", "7-day Incidence", 
-                                                "Fatalities",
-                                                "Lockdown", "War", "Tabloid", 
-                                                "Axel Springer SE", "Conservative", 
-                                                "Left", "Print/Online", "COVID-19", 
-                                                "Economy"
-                                          ))
-                                          ), 
-                      xmin=Estimate-qt(0.975,df=nrow(reg_df)-1)*Std..Error, xmax=Estimate+qt(0.975,df=nrow(reg_df)-1)*Std..Error,
-                      color=Significance,
-                      ),
-                  linewidth=2
-  ) +
-  geom_point(aes(x=Estimate, y=Variable)) +
-  xlim(-.3,1.06) +
-  theme_minimal() +
-  labs(x = "Coefficient (95 % CI)", 
-       y = "", 
-       title = "Paragraph-level") +
-  theme(legend.position = "none", axis.title.x=element_text(size=9),
-        plot.title = element_text(hjust = .5))
-
-tab_paragraph <- model_sum %>% 
-  mutate(
-    Variable = new_names[which(controls == Name)]
-  ) %>% select(
-    c(Variable, Estimate, Std..Error, Pr...z..)
-  )
-
-# Single Models (Article) -------------------------------------------------
-
-controls <- c("var_covid", "var_econ", "var_lockdown", 
-              "var_war", "var_date", "var_source", "var_inc", 
-              "var_death",
-              "var_springer", "var_cons", "var_left", "var_tabloid"
-)
-new_names <- c("COVID-19", "Economy", "Lockdown", 
-               "War", "Date", "Print/Online", "7-day Incidence",
-               "Fatalities",
-               "Axel Springer SE", "Conservative", "Left", "Tabloid"
-)
-art_model_sum <- data.frame(
-  Estimate=double(),
-  Std..Error=double(),
-  t.value=double(),
-  Pr...t..=double(),
-  stringsAsFactors=FALSE
-) 
-for (c in controls) {
-  temp_model <- glm(
-    build_formula(dv = "pop_score", iv = c),
-    family = quasibinomial(),
-    data = reg_art_df
-  )
-  temp_df <-  data.frame(summary(temp_model)$coefficients)[2,]
-  art_model_sum <- rbind(art_model_sum, temp_df)
-}
-art_model_sum <- cbind(Name = rownames(art_model_sum), art_model_sum)
-rownames(art_model_sum) <- 1:nrow(art_model_sum)
-art_model_sum$Significance <- ifelse(art_model_sum$Pr...t.. < 0.05, "p < 0.05", "p > 0.05")
-
-art_model <- art_model_sum %>% 
-  mutate(
-    Variable = controls[which(controls == Name)]
-  ) %>%
-  ggplot(aes(x=Estimate, y=Variable)) + 
-  geom_vline(xintercept=0) +
-  geom_linerange(aes(x=Estimate, y=factor(Variable, 
-                                          rev(c("Date", "7-day Incidence", 
-                                                "Fatalities",
-                                                "Lockdown", "War", "Tabloid", 
-                                                "Axel Springer SE", "Conservative", 
-                                                "Left", "Print/Online", "COVID-19", 
-                                                "Economy"
-                                            ))
-                                          ), 
-                     xmin=Estimate-qt(0.975,df=nrow(reg_art_df)-1)*Std..Error, xmax=Estimate+qt(0.975,df=nrow(reg_art_df)-1)*Std..Error,
-                     color=Significance,
-  ),
-  linewidth=2
-  ) +
-  geom_point(aes(x=Estimate, y=Variable)) +
-  theme_minimal() +
-  # xlim(-.3,1.06) + 
-  labs(x = "Coefficient (95 % CI)", 
-       y = "", 
-       title = "Article-level") +
-  theme(legend.position = "none", axis.title.x=element_text(size=9),
-        plot.title = element_text(hjust = .5))
-
-tab_article <- art_model_sum %>% 
-  mutate(
-    Variable = new_names[which(controls == Name)]
-  ) %>% select(
-    c(Variable, Estimate, Std..Error, Pr...t..)
-  )
-
 # Combined Plot -----------------------------------------------------------
 
-grid.arrange(par_model, art_model, ncol=2,
-             top = "Individual Models"
-             )
-grid.arrange(mv_par_model, mv_art_model, ncol=2, 
-             top = "Fully Specified Model"
-             )
+grid.arrange(mv_par_model, mv_art_model, ncol=2)
 
 pdf(file = "./figures/multi_models_ame_variable.pdf",   
     width = 9, 
     height = 3)
-grid.arrange(mv_par_model, mv_art_model, ncol=2
-)
+grid.arrange(mv_par_model, mv_art_model, ncol=2)
 dev.off()
 
 tab_stats <- rbind(stats_online, stats_print) %>% 
@@ -471,3 +328,74 @@ tab_stats <- rbind(stats_online, stats_print) %>%
     diff = -pct_paragraphs + pct_articles)
 
 print(tab_stats) # GC News Statistics
+
+
+# Export Results ----------------------------------------------------------
+
+mv_par_df <- as.data.frame(summary(multivar_par_model)$coefficients)
+mv_art_df <- as.data.frame(summary(multivar_art_model)$coefficients)
+
+colnames(mv_par_df) <- paste0("par_", names(mv_par_df))
+colnames(mv_art_df) <- paste0("art_", names(mv_art_df))
+
+mv_df <- cbind(
+  mv_par_df, 
+  mv_art_df
+  ) %>% 
+  mutate(
+    Variable = c("(Intercept)", unname(controls[rownames(mv_par_df)])[2:13]),
+    par_Estimate = sprintf("%.2e",par_Estimate) %>% as.character(), 
+    par_SE = sprintf("%.2e",`par_Std. Error`) %>% as.character(), 
+    par_p = sprintf("%.2e",`par_Pr(>|z|)`) %>% as.character(),
+    art_Estimate = sprintf("%.2e",art_Estimate) %>% as.character(), 
+    art_SE = sprintf("%.2e",`art_Std. Error`) %>% as.character(),
+    art_p = sprintf("%.2e",`art_Pr(>|t|)`) %>% as.character()
+  ) %>%
+  select(
+    Variable, 
+    par_Estimate,
+    par_SE,
+    # par_p,
+    art_Estimate,
+    art_SE,
+    # art_p
+  ) %>%
+  arrange(Variable)
+
+# LaTeX Output
+for (i in 1:nrow(mv_df)) {
+  cat(str_c(mv_df[i,], collapse = "\t & "), "\\\\ \n")
+}
+
+colnames(multivar_par_summary) <- paste0("par_", names(multivar_par_summary))
+colnames(multivar_art_summary) <- paste0("art_", names(multivar_art_summary))
+
+ame_df <- cbind(
+  multivar_par_summary, 
+  multivar_art_summary
+) %>% 
+  mutate(
+    Variable = controls[par_factor],
+    par_AME = sprintf("%.2e",par_AME) %>% as.character(), 
+    par_SE = sprintf("%.2e",`par_SE`) %>% as.character(), 
+    par_p = sprintf("%.2e",`par_p`) %>% as.character(),
+    art_AME = sprintf("%.2e",art_AME) %>% as.character(), 
+    art_SE = sprintf("%.2e",`art_SE`) %>% as.character(),
+    art_p = sprintf("%.2e",`art_p`) %>% as.character()
+  ) %>%
+  select(
+    Variable, 
+    par_AME,
+    par_SE,
+    # par_p,
+    art_AME,
+    art_SE,
+    # art_p
+  ) %>%
+  arrange(Variable)
+
+# Latex tabular output
+for (i in 1:nrow(ame_df)) {
+  cat(str_c(ame_df[i,], collapse = "\t & "), "\\\\ \n")
+}
+
