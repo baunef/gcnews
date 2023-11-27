@@ -185,7 +185,7 @@ popB_dimensions_abs_months_score <- rbind(
              labeller = labeller('anti'='Anti-Elitism', 
                                  'peop'='People-Centrism', 
                                  'left'='Left-Wing', 
-                                 'rght'='Right-Wing'), scales = "free_y") +
+                                 'rght'='Right-Wing')) +
   theme_minimal() +
   theme(strip.text.y = element_blank()) +
   theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0)) +
@@ -205,12 +205,13 @@ popB_dimensions_abs_months_score <- rbind(
     labels=c("2020", "2021","2022")
   ) +
   theme(legend.text=element_text(size=12), legend.title = element_blank()) +
-  theme(axis.title = element_text(size=12))
+  theme(axis.title = element_text(size=12)) +
+  ylim(0,31) + theme(panel.spacing = unit(2, "lines"))
 
 plot(popB_dimensions_abs_months_score)
 pdf(file = "./figures/popbert_dimensions_months_absolute.pdf",   
     width = 9, 
-    height = 4.5)
+    height = 9)
 plot(popB_dimensions_abs_months_score)
 dev.off()
 
