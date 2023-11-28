@@ -76,6 +76,19 @@ media_score %>%
 
 print(media_score)
 
+# Print vs Online Score
+print_vs_online <- gcnews %>% 
+  group_by(source_group) %>% 
+  summarize(
+    par_mean = mean( PopBERT_AE + PopBERT_PC > 1 ) * 100,
+    par_cf = qt(0.975,df=n()-1)*sd(PopBERT_AE + PopBERT_PC > 1)/sqrt(n()) * 100
+  ) %>% ungroup %>% arrange(desc(par_mean)) %>%
+  mutate(
+    par_mean = round(par_mean, digits=2),
+    par_cf = round(par_cf, digits=2)
+  )
+print(print_vs_online)
+
 
 # Visualization -----------------------------------------------------------
 
